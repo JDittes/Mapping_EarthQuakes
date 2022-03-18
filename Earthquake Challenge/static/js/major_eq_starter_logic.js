@@ -15,6 +15,13 @@ let satelliteStreets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/sate
 	accessToken: API_KEY
 });
 
+// We create the second tile layer that will be the background of our map.
+let outdoors = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/outdoors-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+	attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery (c) <a href="https://www.mapbox.com/">Mapbox</a>',
+	maxZoom: 18,
+	accessToken: API_KEY
+});
+
 // Create the map object with center, zoom level and default layer.
 let map = L.map('mapid', {
 	center: [40.7, -94.5],
@@ -25,7 +32,8 @@ let map = L.map('mapid', {
 // Create a base layer that holds all three maps.
 let baseMaps = {
   "Streets": streets,
-  "Satellite": satelliteStreets
+  "Satellite": satelliteStreets,
+  "Mountains": outdoors
 };
 
 // 1. Add a 3rd layer group for the major earthquake data.
@@ -125,28 +133,41 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
 d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson").then(function(magData) {
 
 // 4. Use the same style as the earthquake data.
-  function styleInfo(feature) {
-    return {
-      opacity: 1,
-      fillOpacity: 1,
-      fillColor: getColor(feature.properties.mag),
-      color: "#000000",
-      radius: getRadius(feature.properties.mag),
-      stroke: true,
-      weight: 0.5
-    };
+  function getRadius(magnitude) {
+    if (magnitude < 5) {
+      return 10;
+    }
+    if ((magnitude >= 5) && (magnitude < 6)) {
+      return 14;
+    }
+    if (magnitude >= 6 ) {
+      return 20;
+    }
+        return "#98ee00";
   }
+
+  function styleInfo(feature) {
+      return {
+        opacity: 1,
+        fillOpacity: 1,
+        fillColor: getColor(feature.properties.mag),
+        color: "#000000",
+        radius: getRadius(feature.properties.mag),
+        stroke: true,
+        weight: 0.5
+      };
+    }
 
 // 5. Change the color function to use three colors for the major earthquakes based on the magnitude of the earthquake.
   function getColor(magnitude) {
     if (magnitude < 5) {
-      return "#ea2c2c";
+      return "#ee9c00";
     }
-    if ((magnitude >= 5) && (magitude < 6)) {
+    if ((magnitude >= 5) && (magnitude < 6)) {
       return "#ea822c";
     }
     if (magnitude >= 6) {
-      return "#ee9c00";
+      return "#ea2c2c";
     }
 
 // 6. Use the function that determines the radius of the earthquake marker based on its magnitude.
@@ -154,13 +175,13 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
     if (magnitude < 5) {
       return 10;
     }
-    if ((magnitude >= 5) && (magitude < 6)) {
-      return 14;
+    if ((magnitude >= 5) && (magnitude < 6)) {
+      return 15;
     }
     if (magnitude >= 6 ) {
       return 20;
     }
-    return magnitude * 4;
+        return "#98ee00";
   }
   }
 // 7. Creating a GeoJSON layer with the retrieved data that adds a circle to the map 
@@ -175,11 +196,10 @@ L.geoJson(magData, {
   onEachFeature: function(feature, layer) {
    layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
   }    
-
+  }).addTo(majorQuakes)
 // 8. Add the major earthquakes layer to the map.
-}).addTo(majorQuakes)
+  majorQuakes.addTo(map);
 // 9. Close the braces and parentheses for the major earthquake data.
-majorQuakes.addTo(map);
 });
 
 // Here we create a legend control object.
